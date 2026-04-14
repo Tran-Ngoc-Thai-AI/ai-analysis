@@ -1,0 +1,30 @@
+# Core App
+streamlit>=1.31.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization
+matplotlib>=3.8.0
+
+# AI / LLM
+openai>=1.12.0
+
+# Azure OpenAI (dùng chung SDK openai)
+# không cần lib riêng
+
+# PDF Export
+fpdf2>=2.7.8
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Optional (rất nên có)
+scikit-learn>=1.3.0
+
+streamlit
+openai
+matplotlib
+fpdf2
+reportlab
+pandas
+xhtml2pdf
