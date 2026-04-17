@@ -10,7 +10,7 @@
 
 ## Cấu trúc thư mục
 ```
-nhom1/
+ptdlkdnc/
 ├── app.py
 ├── README.md
 ├── requirements.txt
