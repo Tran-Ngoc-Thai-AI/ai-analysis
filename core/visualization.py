@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import uuid
+import traceback
 
 
 def clean_code(code: str) -> str:
@@ -159,6 +160,7 @@ def run_visualization(code, df, output_dir="outputs/charts"):
 
     # ✅ SAFE pandas.cut
     original_pd_cut = pd.cut
+    original_pd_qcut = pd.qcut
 
     def safe_pd_cut(*args, **kwargs):
         try:
@@ -176,10 +178,30 @@ def run_visualization(code, df, output_dir="outputs/charts"):
                 retry_kwargs.pop("labels", None)
                 return original_pd_cut(*args, **retry_kwargs)
 
+    # ✅ SAFE pandas.qcut
+    def safe_pd_qcut(*args, **kwargs):
+        try:
+            return original_pd_qcut(*args, **kwargs)
+        except ValueError as e:
+            if "Bin edges must be unique" not in str(e):
+                raise
+
+            retry_kwargs = dict(kwargs)
+            retry_kwargs["duplicates"] = "drop"
+
+            try:
+                return original_pd_qcut(*args, **retry_kwargs)
+            except ValueError:
+                # labels thường bị lệch số lượng khi duplicates='drop'
+                retry_kwargs.pop("labels", None)
+                return original_pd_qcut(*args, **retry_kwargs)
+
     class PandasProxy:
         def __getattr__(self, name):
             if name == "cut":
                 return safe_pd_cut
+            if name == "qcut":
+                return safe_pd_qcut
             return getattr(pd, name)
 
     def safe_np_ptp(a, axis=None, out=None, **kwargs):
@@ -212,6 +234,24 @@ def run_visualization(code, df, output_dir="outputs/charts"):
 
     try:
         exec(safe_code, env, env)
+    except Exception:
+        # Dump generated code + traceback để debug đúng dòng lỗi khi exec thất bại.
+        debug_dir = os.path.join(output_dir, "_debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        debug_base = uuid.uuid4().hex
+
+        code_path = os.path.join(debug_dir, f"failed_vis_code_{debug_base}.py")
+        trace_path = os.path.join(debug_dir, f"failed_vis_trace_{debug_base}.txt")
+
+        numbered_lines = [f"{i:04d}: {line}" for i, line in enumerate(safe_code.splitlines(), start=1)]
+
+        with open(code_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(numbered_lines))
+
+        with open(trace_path, "w", encoding="utf-8") as f:
+            f.write(traceback.format_exc())
+
+        raise
     finally:
         plt.rcParams.update(old_rc)
 
