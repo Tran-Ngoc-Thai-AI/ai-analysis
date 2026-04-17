@@ -1,9 +1,9 @@
 from openai import AzureOpenAI
 import os
 
-input_api_key = ""
-input_azure_endpoint = ""
-input_model = ""
+input_api_key = "Thêm API key của bạn vào đây hoặc đặt biến môi trường AZURE_OPENAI_API_KEY"
+input_azure_endpoint = "Thêm endpoint của bạn vào đây hoặc đặt biến môi trường AZURE_OPENAI_ENDPOINT"
+input_model = "Thêm tên model của bạn vào đây hoặc đặt biến môi trường AZURE_OPENAI_DEPLOYMENT"
 
 client = AzureOpenAI(
     api_key=input_api_key or os.getenv("AZURE_OPENAI_API_KEY"),

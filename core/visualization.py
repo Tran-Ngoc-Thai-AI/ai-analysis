@@ -39,6 +39,61 @@ class FixDuplicateKwargs(ast.NodeTransformer):
         return node
 
 
+class FixPieUnpack(ast.NodeTransformer):
+    def visit_Assign(self, node: ast.Assign):
+        self.generic_visit(node)
+
+        # Handle: (wedges, texts) = ax.pie(...)
+        if len(node.targets) != 1:
+            return node
+
+        target = node.targets[0]
+        if not isinstance(target, (ast.Tuple, ast.List)):
+            return node
+
+        if len(target.elts) != 2:
+            return node
+
+        call = node.value
+        if not isinstance(call, ast.Call):
+            return node
+
+        func = call.func
+        if not (isinstance(func, ast.Attribute) and func.attr == "pie"):
+            return node
+
+        # pie() có thể trả 2 hoặc 3 giá trị (khi có autopct).
+        # Đổi thành unpack linh hoạt để không văng ValueError.
+        node.targets[0] = ast.Tuple(
+            elts=[
+                target.elts[0],
+                target.elts[1],
+                ast.Starred(value=ast.Name(id="_pie_extra", ctx=ast.Store()), ctx=ast.Store()),
+            ],
+            ctx=ast.Store(),
+        )
+        return node
+
+
+class FixAnnotateFontdict(ast.NodeTransformer):
+    def visit_Call(self, node: ast.Call):
+        self.generic_visit(node)
+
+        func = node.func
+        is_annotate = (
+            isinstance(func, ast.Attribute) and func.attr == "annotate"
+        ) or (
+            isinstance(func, ast.Name) and func.id == "annotate"
+        )
+
+        if not is_annotate:
+            return node
+
+        # matplotlib annotate không nhận fontdict như text(); bỏ kw này để tránh crash.
+        node.keywords = [kw for kw in node.keywords if kw.arg != "fontdict"]
+        return node
+
+
 def sanitize_generated_code(code: str) -> str:
     try:
         tree = ast.parse(code)
@@ -94,8 +149,10 @@ def sanitize_generated_code(code: str) -> str:
 
     tree.body = filtered_body
 
-    # ✅ APPLY FIX duplicate kwargs
+    # ✅ APPLY FIX duplicate kwargs + pie unpack + annotate fontdict
     tree = FixDuplicateKwargs().visit(tree)
+    tree = FixPieUnpack().visit(tree)
+    tree = FixAnnotateFontdict().visit(tree)
     ast.fix_missing_locations(tree)
 
     return ast.unparse(tree)
@@ -161,6 +218,7 @@ def run_visualization(code, df, output_dir="outputs/charts"):
     # ✅ SAFE pandas.cut
     original_pd_cut = pd.cut
     original_pd_qcut = pd.qcut
+    original_axes_annotate = plt.Axes.annotate
 
     def safe_pd_cut(*args, **kwargs):
         try:
@@ -220,6 +278,19 @@ def run_visualization(code, df, output_dir="outputs/charts"):
                 return safe_np_ptp
             return getattr(np, name)
 
+    def safe_axes_annotate(self, *args, **kwargs):
+        try:
+            return original_axes_annotate(self, *args, **kwargs)
+        except AttributeError as e:
+            if "fontdict" not in str(e):
+                raise
+
+            retry_kwargs = dict(kwargs)
+            retry_kwargs.pop("fontdict", None)
+            return original_axes_annotate(self, *args, **retry_kwargs)
+
+    plt.Axes.annotate = safe_axes_annotate
+
     env = {
         "df": df,
         "pd": PandasProxy(),
@@ -253,6 +324,7 @@ def run_visualization(code, df, output_dir="outputs/charts"):
 
         raise
     finally:
+        plt.Axes.annotate = original_axes_annotate
         plt.rcParams.update(old_rc)
 
     return chart_paths

@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "C:\uit\code\ptdlkd-BaoCaoTuDongTuEdaDenBaoCao\nhom1\core\visualization.py", line 273, in run_visualization
+    exec(safe_code, env, env)
+  File "<string>", line 102, in <module>
+  File "C:\Users\lenovo\.conda\envs\ptdlkd1\lib\site-packages\matplotlib\axes\_axes.py", line 721, in annotate
+    a = mtext.Annotation(text, xy, xytext=xytext, xycoords=xycoords,
+  File "C:\Users\lenovo\.conda\envs\ptdlkd1\lib\site-packages\matplotlib\text.py", line 1857, in __init__
+    Text.__init__(self, x, y, text, **kwargs)
+  File "C:\Users\lenovo\.conda\envs\ptdlkd1\lib\site-packages\matplotlib\text.py", line 155, in __init__
+    self.update(kwargs)
+  File "C:\Users\lenovo\.conda\envs\ptdlkd1\lib\site-packages\matplotlib\text.py", line 205, in update
+    ret.extend(super().update(kwargs))
+  File "C:\Users\lenovo\.conda\envs\ptdlkd1\lib\site-packages\matplotlib\artist.py", line 1223, in update
+    return self._update_props(
+  File "C:\Users\lenovo\.conda\envs\ptdlkd1\lib\site-packages\matplotlib\artist.py", line 1206, in _update_props
+    raise AttributeError(
+AttributeError: 'Annotation' object has no property 'fontdict'

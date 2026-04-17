@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "C:\uit\code\ptdlkd-BaoCaoTuDongTuEdaDenBaoCao\nhom1\core\visualization.py", line 236, in run_visualization
+    exec(safe_code, env, env)
+  File "<string>", line 108, in <module>
+ValueError: too many values to unpack (expected 2)
